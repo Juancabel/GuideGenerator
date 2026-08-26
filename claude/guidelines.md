@@ -113,6 +113,23 @@ These each cost an hour to find. Do not rediscover them.
     `core.autocrlf=true` would otherwise rewrite `build.sh` to CRLF and break
     it under WSL, Git Bash and CI with `bad interpreter: /usr/bin/env bash^M`.
 
+13. **Never call Pandoc's built-in partials from the template.** This template
+    used to pull helper definitions in with `$definitions.typst()$`. That
+    partial was REMOVED in later Pandoc, and the build then dies at the Pandoc
+    stage with `Could not find data file 'templates/definitions.typst'`.
+    Section 2 of `templates/guide.typ` now defines every helper itself, because
+    which helpers Pandoc emits also changes between versions:
+
+    | Pandoc | block quote | rule | note |
+    |--------|-------------|------|------|
+    | 3.0 - 3.5 | `#blockquote[...]` | `#horizontalrule` | `#endnote(n, ...)` |
+    | 3.6+ | `#quote(block: true)[...]` | `#divider()` | `#footnote[...]` |
+
+    All of them are defined, so the template is version-independent. Verified
+    building identical 11-page PDFs on Pandoc 3.1.3 and 3.10.2 with Typst
+    0.15.1. If you ever add a Pandoc partial call back in, you re-introduce a
+    dependency on one specific Pandoc version.
+
 ## Conventions
 
 - **Adding a chapter:** create `contents/NNN.name.md`. Number in tens so

@@ -490,6 +490,12 @@ remove the name from `metadata.yaml`.
 **Pandoc 2.x will not work.** `--to=typst` arrived in Pandoc 3.0. If the build
 fails immediately with an unrecognised-format error, check `pandoc --version`.
 
+**Don't call Pandoc's built-in partials from the template.** A template that
+uses `$definitions.typst()$` breaks on newer Pandoc with `Could not find data
+file 'templates/definitions.typst'`. Section 2 of `templates/guide.typ` defines
+those helpers itself so the template works across Pandoc versions — verified on
+3.1.3 and 3.10.2.
+
 ---
 
 ## Project layout

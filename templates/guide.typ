@@ -71,14 +71,35 @@
 //  2. HELPER FUNCTIONS
 // -----------------------------------------------------------------------------
 
-// Pandoc's Typst writer emits calls to helpers it expects the template to
-// provide — #blockquote[...], #horizontalrule, #endnote(...) and friends.
-// This partial ships with Pandoc and defines them. Without it you get:
-//     error: unknown variable: blockquote
-// Anything defined below this line overrides the partial's version.
-$definitions.typst()$
+// ---- Helpers that Pandoc's Typst writer calls -------------------------------
+//
+//  Pandoc emits calls to helper functions it expects the template to provide,
+//  and WHICH ones it emits changed between Pandoc versions:
+//
+//    Pandoc 3.0 - 3.5   #blockquote[...]          #horizontalrule   #endnote(n, ...)
+//    Pandoc 3.6+        #quote(block: true)[...]  #divider()        #footnote[...]
+//
+//  Older Pandoc supplied these through a built-in partial pulled in with
+//  $$definitions.typst()$$. THAT PARTIAL WAS REMOVED in later Pandoc, so a
+//  template still referencing it dies at the Pandoc stage with:
+//
+//      Could not find data file 'templates/definitions.typst'
+//
+//  Defining them here instead makes this template work on every Pandoc 3.x.
+//  Unused definitions cost nothing, so define them all and stop worrying about
+//  which Pandoc is installed.
+// -----------------------------------------------------------------------------
 
-// Block quotes, restyled with an accent rule instead of Pandoc's default.
+#let horizontalRule = align(center, block(
+  above: 1.6em, below: 1.6em,
+  line(length: 32%, stroke: 0.6pt + luma(180)),
+))
+#let horizontalrule = horizontalRule    // Pandoc <= 3.5 spelling
+#let divider() = horizontalRule         // Pandoc 3.6+, called WITH parentheses
+
+// Pandoc <= 3.5 wrapped block quotes in #blockquote[...]. Pandoc 3.6+ emits a
+// native #quote(block: true), which the show rule in section 3 styles instead.
+// Both routes land on the same look.
 #let blockquote(body) = block(
   width: 100%,
   inset: (left: 1.2em, y: 0.4em),
@@ -91,11 +112,11 @@ $definitions.typst()$
   #body
 ]
 
-// Horizontal rules.
-#let horizontalrule = align(center, block(
-  above: 1.6em, below: 1.6em,
-  line(length: 32%, stroke: 0.6pt + luma(180)),
-))
+// Pandoc <= 3.5 emitted #endnote(...); 3.6+ uses Typst's native #footnote.
+#let endnote(num, contents) = stack(dir: ltr, spacing: 3pt, super[#num], contents)
+
+// Definition lists.
+#set terms(hanging-indent: 1.5em)
 
 // Callout boxes. Written in Markdown as a fenced div:
 //
