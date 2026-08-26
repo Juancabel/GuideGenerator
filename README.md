@@ -64,7 +64,8 @@ generated Typst.
 
 ## Installation
 
-You need exactly two programs: **Pandoc 3.0+** and **Typst 0.13+**.
+You need exactly two programs: **Pandoc 3.10.2** and **Typst 0.15.1**. Those
+are the versions this project is verified against.
 
 ### Windows
 
@@ -72,8 +73,8 @@ The `winget` package manager is built into Windows 10 (1809+) and Windows 11.
 Open PowerShell and run:
 
 ```powershell
-winget install --id JohnMacFarlane.Pandoc
-winget install --id Typst.Typst
+winget install --id JohnMacFarlane.Pandoc --version 3.10.2
+winget install --id Typst.Typst --version 0.15.1
 ```
 
 **Close and reopen PowerShell afterwards.** `winget` writes the new `PATH` into
@@ -102,22 +103,22 @@ delimiter. Keep `build.ps1` ASCII-only.
 **Scoop:**
 
 ```powershell
-scoop install pandoc typst
+scoop install pandoc@3.10.2 typst@0.15.1
 ```
 
 **Chocolatey:**
 
 ```powershell
-choco install pandoc
+choco install pandoc --version=3.10.2
 ```
 
 Chocolatey has no Typst package; download `typst-x86_64-pc-windows-msvc.zip`
-from <https://github.com/typst/typst/releases>, extract it, and put `typst.exe`
-somewhere on your `PATH`.
+from the [Typst 0.15.1 release](https://github.com/typst/typst/releases/tag/v0.15.1),
+extract it, and put `typst.exe` somewhere on your `PATH`.
 
-**Manual:** installers for both are on their releases pages —
-<https://github.com/jgm/pandoc/releases> and
-<https://github.com/typst/typst/releases>.
+**Manual:** install Pandoc 3.10.2 from
+<https://github.com/jgm/pandoc/releases/tag/3.10.2> and Typst 0.15.1 from
+<https://github.com/typst/typst/releases/tag/v0.15.1>.
 
 </details>
 
@@ -156,6 +157,10 @@ brew install pandoc typst
 brew install fswatch      # optional, enables `make watch`
 ```
 
+Homebrew installs its current formula versions. Confirm they match Pandoc
+3.10.2 and Typst 0.15.1 with the verification command below; if they do not,
+install those versions from the projects' release pages instead.
+
 `make` is already present on macOS via the Xcode command line tools. If
 `make` reports it's missing, run `xcode-select --install`.
 
@@ -165,15 +170,16 @@ brew install fswatch      # optional, enables `make watch`
 the official binary:
 
 ```bash
-curl -fsSL https://github.com/typst/typst/releases/latest/download/typst-x86_64-unknown-linux-musl.tar.xz \
+curl -fsSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz \
   | tar -xJ
 sudo mv typst-x86_64-unknown-linux-musl/typst /usr/local/bin/
 ```
 
-If you have a Rust toolchain, `cargo install --locked typst-cli` works too.
+If you have a Rust toolchain, `cargo install --locked --version 0.15.1 typst-cli`
+works too.
 
-**Pandoc** — the catch is version. `--to=typst` needs Pandoc 3.0+, and older
-LTS releases ship 2.x, which will fail with an unhelpful error.
+**Pandoc** — install version 3.10.2. Older LTS releases ship 2.x, which will
+fail with an unhelpful error, while newer versions have not been verified here.
 
 <details open>
 <summary>Debian / Ubuntu</summary>
@@ -184,15 +190,15 @@ Check what your repo has first:
 apt-cache policy pandoc
 ```
 
-If it's 3.0 or newer, `sudo apt install pandoc` is fine. If it's 2.x (Ubuntu
-22.04 and earlier), install the official `.deb` instead:
+If the repository does not provide 3.10.2, install the official `.deb` instead:
 
 ```bash
-curl -fsSLO https://github.com/jgm/pandoc/releases/latest/download/pandoc-3.9-1-amd64.deb
+curl -fsSLO https://github.com/jgm/pandoc/releases/download/3.10.2/pandoc-3.10.2-1-amd64.deb
 sudo dpkg -i pandoc-*-amd64.deb
 ```
 
-Check <https://github.com/jgm/pandoc/releases> for the current filename.
+For other architectures, use the matching Pandoc 3.10.2 asset from
+<https://github.com/jgm/pandoc/releases/tag/3.10.2>.
 
 Optional, for `make watch`: `sudo apt install inotify-tools`
 
@@ -206,8 +212,8 @@ sudo dnf install pandoc
 sudo dnf install inotify-tools      # optional, for make watch
 ```
 
-Recent Fedora releases also package Typst: try `sudo dnf install typst` before
-falling back to the binary above.
+Use the Pandoc 3.10.2 and Typst 0.15.1 release assets if the repository
+versions do not match the pinned versions above.
 
 </details>
 
@@ -219,7 +225,8 @@ sudo pacman -S pandoc-cli typst
 sudo pacman -S inotify-tools        # optional, for make watch
 ```
 
-Arch packages both, so you can skip the manual Typst step.
+Arch packages both, but rolling packages may not match the pinned versions;
+use the release assets above when they do not.
 
 </details>
 
@@ -230,8 +237,8 @@ make check          # macOS / Linux
 .\build.ps1 -Check  # Windows
 ```
 
-You want to see Pandoc 3.0 or higher and Typst 0.13 or higher. Anything older
-will fail in confusing ways.
+You want to see Pandoc 3.10.2 and Typst 0.15.1. Other versions have not been
+verified and may fail in confusing ways.
 
 **No fonts to install.** The template defaults to the two typefaces Typst ships
 with, so a fresh clone builds warning-free on any machine.
@@ -439,10 +446,12 @@ jobs:
       - name: Install Pandoc
         uses: pandoc/actions/setup@v1
         with:
-          version: 3.9
+          version: 3.10.2
 
       - name: Install Typst
         uses: typst-community/setup-typst@v4
+        with:
+          version: 0.15.1
 
       - run: make
 
@@ -509,7 +518,7 @@ those helpers itself so the template works across Pandoc versions — verified o
 │   └── guide.typ          the Typst template — the only file with styling in it
 ├── filters/
 │   ├── images.lua         rewrites image paths to resolve from the project root
-│   ├── crossrefs.lua      [@lst:x] cross-refs; normalises citations for Typst 0.13+
+│   ├── crossrefs.lua      [@lst:x] cross-refs; normalises citations for Typst 0.15+
 │   ├── listings.lua       captioned code blocks become numbered Listings
 │   ├── tables.lua         captioned tables become numbered Tables
 │   └── callouts.lua       ::: note / tip / warning / danger boxes
