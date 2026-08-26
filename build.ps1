@@ -7,6 +7,11 @@
     the Makefile does. If you have Make (via Git Bash, WSL, Scoop or winget),
     you can use `make` instead — both produce the same output.
 
+    Pandoc and Typst do not have to be on PATH. If they were just installed and
+    this shell predates the install, the script reloads PATH from the registry;
+    failing that it probes the usual winget, Scoop, Chocolatey and Cargo
+    install locations.
+
 .EXAMPLE
     .\build.ps1
     Build the PDF into output\
@@ -59,29 +64,157 @@ $Filters = @(
     'filters/callouts.lua'
 )
 
-function Test-Dependencies {
-    $ok = $true
+# Resolved executable paths, filled in by Test-Dependencies.
+$script:PandocExe = $null
+$script:TypstExe  = $null
 
-    $pandoc = Get-Command pandoc -ErrorAction SilentlyContinue
+# ---------------------------------------------------------------------------
+#  Tool discovery
+#
+#  winget, Scoop and installers write PATH into the registry, but a PowerShell
+#  window that was already open keeps the copy it started with. That makes a
+#  freshly installed tool look missing until the shell is restarted, which is
+#  the single most common reason this script fails. So: look on PATH, then
+#  reload PATH from the registry, then probe known install locations.
+# ---------------------------------------------------------------------------
+
+function Update-PathFromRegistry {
+    $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    $user    = [Environment]::GetEnvironmentVariable('Path', 'User')
+    $env:Path = (@($machine, $user) | Where-Object { $_ }) -join ';'
+}
+
+function Join-IfSet {
+    # Join-Path throws if the base is null, and several of the environment
+    # variables probed below are absent on some Windows configurations
+    # (ProgramFiles(x86) on ARM64, for instance) and on non-Windows hosts.
+    param([string]$Base, [string]$Child)
+    if ([string]::IsNullOrWhiteSpace($Base)) { return $null }
+    return (Join-Path $Base $Child)
+}
+
+function Resolve-Tool {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [string[]]$Probe = @()
+    )
+
+    $cmd = Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue |
+           Select-Object -First 1
+    if ($cmd) {
+        return [pscustomobject]@{ Path = $cmd.Source; OnPath = $true }
+    }
+
+    Update-PathFromRegistry
+    $cmd = Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue |
+           Select-Object -First 1
+    if ($cmd) {
+        return [pscustomobject]@{ Path = $cmd.Source; OnPath = $false }
+    }
+
+    foreach ($candidate in $Probe) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+            return [pscustomobject]@{ Path = (Resolve-Path -LiteralPath $candidate).Path; OnPath = $false }
+        }
+    }
+
+    # Last resort: winget keeps unlinked packages under its own store.
+    $wingetPackages = Join-IfSet $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'
+    if ($wingetPackages -and (Test-Path -LiteralPath $wingetPackages)) {
+        $hit = Get-ChildItem -LiteralPath $wingetPackages -Filter "$Name.exe" -Recurse -ErrorAction SilentlyContinue |
+               Select-Object -First 1
+        if ($hit) {
+            return [pscustomobject]@{ Path = $hit.FullName; OnPath = $false }
+        }
+    }
+
+    return $null
+}
+
+function Get-ToolVersion {
+    param([string]$Exe, [string[]]$VersionArgs = @('--version'))
+    try {
+        $raw = & $Exe @VersionArgs 2>&1 | Select-Object -First 1
+        return "$raw".Trim()
+    } catch {
+        return $null
+    }
+}
+
+function Get-SemVer {
+    param([string]$Text)
+    if ($Text -and ($Text -match '(\d+)\.(\d+)(?:\.(\d+))?')) {
+        $patch = if ($Matches[3]) { $Matches[3] } else { '0' }
+        try { return [version]"$($Matches[1]).$($Matches[2]).$patch" } catch { return $null }
+    }
+    return $null
+}
+
+function Test-Dependencies {
+    $ok         = $true
+    $pathIssue  = $false
+
+    $pandoc = Resolve-Tool -Name 'pandoc' -Probe @(
+        (Join-IfSet $env:LOCALAPPDATA 'Microsoft\WinGet\Links\pandoc.exe'),
+        (Join-IfSet $env:ProgramFiles 'Pandoc\pandoc.exe'),
+        (Join-IfSet ${env:ProgramFiles(x86)} 'Pandoc\pandoc.exe'),
+        (Join-IfSet $env:LOCALAPPDATA 'Pandoc\pandoc.exe'),
+        (Join-IfSet $env:USERPROFILE 'scoop\shims\pandoc.exe'),
+        (Join-IfSet $env:ProgramData 'chocolatey\bin\pandoc.exe')
+    )
+
     if ($pandoc) {
-        $v = (& pandoc --version | Select-Object -First 1)
+        $script:PandocExe = $pandoc.Path
+        $v   = Get-ToolVersion $pandoc.Path
+        $sem = Get-SemVer $v
         Write-Host "pandoc: $v" -ForegroundColor Green
-        $ver = [version](($v -split '\s+')[1] -replace '[^0-9.].*$', '')
-        if ($ver -lt [version]'3.0') {
-            Write-Host "  WARNING: Pandoc 3.0+ is required for --to=typst." -ForegroundColor Yellow
+        if (-not $pandoc.OnPath) {
+            Write-Host "        found at $($pandoc.Path) — not on this shell's PATH" -ForegroundColor Yellow
+            $pathIssue = $true
+        }
+        if ($sem -and $sem -lt [version]'3.0.0') {
+            Write-Host "        ERROR: Pandoc 3.0+ is required for --to=typst (found $sem)." -ForegroundColor Red
             $ok = $false
         }
     } else {
-        Write-Host "MISSING pandoc  ->  winget install --id JohnMacFarlane.Pandoc" -ForegroundColor Red
+        Write-Host "pandoc: NOT FOUND  ->  winget install --id JohnMacFarlane.Pandoc" -ForegroundColor Red
         $ok = $false
     }
 
-    $typst = Get-Command typst -ErrorAction SilentlyContinue
+    $typst = Resolve-Tool -Name 'typst' -Probe @(
+        (Join-IfSet $env:LOCALAPPDATA 'Microsoft\WinGet\Links\typst.exe'),
+        (Join-IfSet $env:USERPROFILE 'scoop\shims\typst.exe'),
+        (Join-IfSet $env:USERPROFILE '.cargo\bin\typst.exe'),
+        (Join-IfSet $env:ProgramData 'chocolatey\bin\typst.exe')
+    )
+
     if ($typst) {
-        Write-Host "typst:  $(& typst --version)" -ForegroundColor Green
+        $script:TypstExe = $typst.Path
+        $v   = Get-ToolVersion $typst.Path
+        $sem = Get-SemVer $v
+        Write-Host "typst:  $v" -ForegroundColor Green
+        if (-not $typst.OnPath) {
+            Write-Host "        found at $($typst.Path) — not on this shell's PATH" -ForegroundColor Yellow
+            $pathIssue = $true
+        }
+        if ($sem -and $sem -lt [version]'0.13.0') {
+            Write-Host "        ERROR: Typst 0.13+ is required (found $sem)." -ForegroundColor Red
+            $ok = $false
+        }
     } else {
-        Write-Host "MISSING typst   ->  winget install --id Typst.Typst" -ForegroundColor Red
+        Write-Host "typst:  NOT FOUND  ->  winget install --id Typst.Typst" -ForegroundColor Red
         $ok = $false
+    }
+
+    if ($pathIssue) {
+        Write-Host ''
+        Write-Host 'A tool was found but is not on this shell''s PATH. That happens when it' -ForegroundColor Yellow
+        Write-Host 'was installed after this window was opened. The build will still work —' -ForegroundColor Yellow
+        Write-Host 'this script calls it by full path — but to fix the shell itself, either' -ForegroundColor Yellow
+        Write-Host 'open a new PowerShell window or run:' -ForegroundColor Yellow
+        Write-Host ''
+        Write-Host "  `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')" -ForegroundColor Cyan
+        Write-Host ''
     }
 
     return $ok
@@ -114,7 +247,7 @@ function Invoke-Build {
     $pandocArgs += "--output=$TypFile"
 
     Write-Host 'Generating Typst source...' -ForegroundColor Cyan
-    & pandoc @pandocArgs
+    & $script:PandocExe @pandocArgs
     if ($LASTEXITCODE -ne 0) { throw "Pandoc failed with exit code $LASTEXITCODE" }
 
     if ($TypOnly) {
@@ -123,7 +256,7 @@ function Invoke-Build {
     }
 
     Write-Host 'Compiling Typst -> PDF...' -ForegroundColor Cyan
-    & typst compile --root="$Root" "$TypFile" "$PdfFile"
+    & $script:TypstExe compile --root="$Root" "$TypFile" "$PdfFile"
     if ($LASTEXITCODE -ne 0) { throw "Typst failed with exit code $LASTEXITCODE" }
 
     Write-Host "PDF ready: $PdfFile" -ForegroundColor Green

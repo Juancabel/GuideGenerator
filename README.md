@@ -76,7 +76,19 @@ winget install --id JohnMacFarlane.Pandoc
 winget install --id Typst.Typst
 ```
 
-**Close and reopen PowerShell** afterwards so the new `PATH` takes effect.
+**Close and reopen PowerShell afterwards.** `winget` writes the new `PATH` into
+the registry, but a shell that was already open keeps the copy it started with
+— so a freshly installed Pandoc looks missing until you restart the terminal.
+To reload `PATH` without closing the window:
+
+```powershell
+$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+```
+
+`build.ps1` handles this for you: if a tool is not on `PATH` it reloads from the
+registry and then probes the usual winget, Scoop, Chocolatey and Cargo install
+locations, calling the tool by full path if it finds one. It tells you when it
+had to do that, so you know your shell still needs fixing.
 
 <details>
 <summary>Alternatives if you don't have or want winget</summary>
