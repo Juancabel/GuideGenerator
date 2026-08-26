@@ -1,0 +1,30 @@
+# Normalise line endings so the repo works on Windows, macOS, Linux and CI.
+#
+# Without this, a Windows checkout with core.autocrlf=true rewrites every text
+# file to CRLF — which breaks `build.sh` under WSL/Git Bash/CI with
+# "bad interpreter: /usr/bin/env bash^M", and can break GNU Make recipes.
+#
+# LF is stored in the repo for everything; only genuinely Windows-only files
+# are checked out as CRLF.
+
+* text=auto eol=lf
+
+# Must be LF, always — these are run by bash/make.
+*.sh        text eol=lf
+Makefile    text eol=lf
+*.lua       text eol=lf
+
+# Windows-only; CRLF is conventional and PowerShell accepts either.
+*.ps1       text eol=crlf
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# Never touch these.
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.pdf       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.otf       binary
