@@ -98,6 +98,21 @@ These each cost an hour to find. Do not rediscover them.
     cannot find and falls through the stack. Defaults are the fonts Typst
     ships with, so a clean checkout builds warning-free.
 
+11. **`build.ps1` must stay pure ASCII and keep its UTF-8 BOM.** Windows
+    PowerShell 5.1 (`powershell.exe`, still the Windows default) reads `.ps1`
+    files in the system ANSI codepage unless the file starts with a BOM. An em
+    dash stored as UTF-8 (`E2 80 94`) is then decoded as CP1252, where byte
+    `0x94` is a smart closing quote — and PowerShell treats smart quotes as
+    string delimiters. The failure looks nothing like the cause: "The string is
+    missing the terminator" plus cascading "missing closing '}'" errors,
+    reported at lines far from the offending character. Write `-`, not `—`, in
+    `build.ps1`. Never add a BOM to `build.sh` — it breaks the shebang.
+
+12. **Line endings are pinned by `.gitattributes`.** `build.sh`, `Makefile` and
+    `filters/*.lua` are LF; `*.ps1` is CRLF. A Windows checkout with
+    `core.autocrlf=true` would otherwise rewrite `build.sh` to CRLF and break
+    it under WSL, Git Bash and CI with `bad interpreter: /usr/bin/env bash^M`.
+
 ## Conventions
 
 - **Adding a chapter:** create `contents/NNN.name.md`. Number in tens so

@@ -1,11 +1,11 @@
-<#
+﻿<#
 .SYNOPSIS
     Builds the PDF. The Windows equivalent of `make`.
 
 .DESCRIPTION
     GNU Make is not installed on Windows by default, so this script does what
     the Makefile does. If you have Make (via Git Bash, WSL, Scoop or winget),
-    you can use `make` instead — both produce the same output.
+    you can use `make` instead - both produce the same output.
 
     Pandoc and Typst do not have to be on PATH. If they were just installed and
     this shell predates the install, the script reloads PATH from the registry;
@@ -54,7 +54,7 @@ $DocName   = 'rust-guide'
 $TypFile = Join-Path $OutputDir "$DocName.typ"
 $PdfFile = Join-Path $OutputDir "$DocName.pdf"
 
-# ORDER MATTERS — see the note in the Makefile. crossrefs must run before the
+# ORDER MATTERS - see the note in the Makefile. crossrefs must run before the
 # filters that serialise their own contents to Typst.
 $Filters = @(
     'filters/images.lua',
@@ -169,7 +169,7 @@ function Test-Dependencies {
         $sem = Get-SemVer $v
         Write-Host "pandoc: $v" -ForegroundColor Green
         if (-not $pandoc.OnPath) {
-            Write-Host "        found at $($pandoc.Path) — not on this shell's PATH" -ForegroundColor Yellow
+            Write-Host "        found at $($pandoc.Path) - not on this shell's PATH" -ForegroundColor Yellow
             $pathIssue = $true
         }
         if ($sem -and $sem -lt [version]'3.0.0') {
@@ -194,7 +194,7 @@ function Test-Dependencies {
         $sem = Get-SemVer $v
         Write-Host "typst:  $v" -ForegroundColor Green
         if (-not $typst.OnPath) {
-            Write-Host "        found at $($typst.Path) — not on this shell's PATH" -ForegroundColor Yellow
+            Write-Host "        found at $($typst.Path) - not on this shell's PATH" -ForegroundColor Yellow
             $pathIssue = $true
         }
         if ($sem -and $sem -lt [version]'0.13.0') {
@@ -209,8 +209,8 @@ function Test-Dependencies {
     if ($pathIssue) {
         Write-Host ''
         Write-Host 'A tool was found but is not on this shell''s PATH. That happens when it' -ForegroundColor Yellow
-        Write-Host 'was installed after this window was opened. The build will still work —' -ForegroundColor Yellow
-        Write-Host 'this script calls it by full path — but to fix the shell itself, either' -ForegroundColor Yellow
+        Write-Host 'was installed after this window was opened. The build will still work -' -ForegroundColor Yellow
+        Write-Host 'this script calls it by full path - but to fix the shell itself, either' -ForegroundColor Yellow
         Write-Host 'open a new PowerShell window or run:' -ForegroundColor Yellow
         Write-Host ''
         Write-Host "  `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')" -ForegroundColor Cyan

@@ -90,6 +90,12 @@ registry and then probes the usual winget, Scoop, Chocolatey and Cargo install
 locations, calling the tool by full path if it finds one. It tells you when it
 had to do that, so you know your shell still needs fixing.
 
+If PowerShell reports *"The string is missing the terminator"* in `build.ps1`,
+the file has lost its UTF-8 BOM or picked up a non-ASCII character. Windows
+PowerShell 5.1 reads `.ps1` in the system ANSI codepage without a BOM, and a
+UTF-8 em dash decodes into a smart quote that PowerShell treats as a string
+delimiter. Keep `build.ps1` ASCII-only.
+
 <details>
 <summary>Alternatives if you don't have or want winget</summary>
 
