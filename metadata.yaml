@@ -1,0 +1,83 @@
+---
+# =============================================================================
+#  Document metadata
+#
+#  Everything here is injected into templates/guide.typ by Pandoc. Changing
+#  this file is how you turn "An Introduction to Rust" into "An Introduction
+#  to Go" without touching the template.
+# =============================================================================
+
+# ---- Identity ---------------------------------------------------------------
+
+title: "An Introduction to Rust"
+subtitle: "Ownership, Borrowing, and Fearless Concurrency"
+
+author:
+  - "Juan Beltrán"
+
+version: "1.0"
+date: "2026-08-25"
+
+publisher: "Independently published"
+description: "A practical introduction to the Rust programming language."
+rights: "© 2026 Juan Beltrán. All rights reserved."
+identifier: "rust-intro-2026"
+
+lang: "en"
+
+# Optional cover illustration, drawn on the lower half of the title page.
+# cover-image: "img/cover.png"
+
+
+# ---- Front matter -----------------------------------------------------------
+
+toc: true          # table of contents
+toc-depth: 3       # heading levels shown in the contents
+lol: true          # list of listings
+lof: false         # list of figures — turn on once you have several
+
+
+# ---- Look and feel ----------------------------------------------------------
+
+# Hex colour WITHOUT the leading '#' — Pandoc escapes '#' inside metadata
+# values, which breaks the generated Typst. b7410e is "rust" orange;
+# try 1e5f8f for blue, 2f5d3a for green, 5b3a86 for purple.
+accent-color: "b7410e"
+
+papersize: "a4"    # or "us-letter"
+# two-sided: true  # mirrored margins for duplex printing and binding
+
+font-size: "10.5pt"
+code-size: "8.5pt"
+
+# Leave these commented and the template uses the fonts Typst ships with
+# (Libertinus Serif + DejaVu Sans Mono), which build warning-free anywhere.
+#
+# Uncomment to prefer a font you have installed. Setting font-sans to an
+# actual sans face is the single biggest visual upgrade — it gives headings,
+# captions and callout labels contrast against the serif body text.
+#   font-sans:  "Inter", "Source Sans 3", "TeX Gyre Heros", "Helvetica Neue"
+#   font-mono:  "JetBrains Mono", "Fira Code", "SF Mono", "Cascadia Code"
+#   font-body:  "Libertinus Serif", "EB Garamond", "Charter", "TeX Gyre Pagella"
+#
+# A name you don't have installed logs a harmless "unknown font family"
+# warning and falls through to the default.
+# font-body: "Libertinus Serif"
+# font-sans: "Inter"
+# font-mono: "JetBrains Mono"
+
+line-numbers: true   # gutter line numbers in code blocks
+
+
+# ---- Bibliography -----------------------------------------------------------
+
+bibliography:
+  - "bibliography.bib"
+
+# Typst ships: ieee, apa, mla, chicago-author-date, chicago-notes,
+# council-of-science-editors, harvard-cite-them-right, and more.
+# You can also give a path to any .csl file: "styles/acm.csl"
+csl-style: "ieee"
+
+reference-section-title: "References"
+---
