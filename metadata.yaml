@@ -13,14 +13,14 @@ title: "An Introduction to Rust"
 subtitle: "Ownership, Borrowing, and Fearless Concurrency"
 
 author:
-  - "Juan Beltrán"
+  - "Juan Camilo Beltrán Garnica"
 
 version: "1.0"
 date: "2026-08-25"
 
 publisher: "Independently published"
 description: "A practical introduction to the Rust programming language."
-rights: "© 2026 Juan Beltrán. All rights reserved."
+rights: "© 2026 Juan Camilo Beltrán Garnica. All rights reserved."
 identifier: "rust-intro-2026"
 
 lang: "en"
@@ -29,11 +29,35 @@ lang: "en"
 # cover-image: "img/cover.png"
 
 
+# ---- Branding ---------------------------------------------------------------
+#
+# All three are optional; omit them and the title page and headers fall back to
+# the plain typographic layout. Paths are relative to the PROJECT ROOT — the
+# template prefixes them with '/' so Typst resolves them against --root and not
+# against the generated .typ in output/.
+#
+# NEVER put an underscore in a path here (this applies to cover-image too).
+# Pandoc parses metadata values as Markdown and escapes '_' to '\_', and Typst
+# then rejects the backslash in the path. Use hyphens.
+
+# Shown top-right of every body page header and on the title page. On the
+# title page it is broken one word per line and right-aligned; a single-word
+# name just renders on one line.
+brand-name: "DualTech Environment"
+
+# Compact logo for the running header. It is drawn 8.5mm tall, so use a mark
+# that still reads at that size — a crest or symbol, not a full wordmark.
+brand-mark: "img/logo-uniandes.webp"
+
+# Full logo with wordmark, drawn 5.2cm wide at the top of the title page.
+brand-logo: "img/logo-uniandes-wordmark.png"
+
+
 # ---- Front matter -----------------------------------------------------------
 
 toc: true          # table of contents
 toc-depth: 3       # heading levels shown in the contents
-lol: true          # list of listings
+lol: false         # list of listings
 lof: false         # list of figures — turn on once you have several
 
 
@@ -53,18 +77,25 @@ code-size: "8.5pt"
 # Leave these commented and the template uses the fonts Typst ships with
 # (Libertinus Serif + DejaVu Sans Mono), which build warning-free anywhere.
 #
-# Uncomment to prefer a font you have installed. Setting font-sans to an
-# actual sans face is the single biggest visual upgrade — it gives headings,
-# captions and callout labels contrast against the serif body text.
-#   font-sans:  "Inter", "Source Sans 3", "TeX Gyre Heros", "Helvetica Neue"
-#   font-mono:  "JetBrains Mono", "Fira Code", "SF Mono", "Cascadia Code"
-#   font-body:  "Libertinus Serif", "EB Garamond", "Charter", "TeX Gyre Pagella"
-#
-# A name you don't have installed logs a harmless "unknown font family"
-# warning and falls through to the default.
-# font-body: "Libertinus Serif"
-# font-sans: "Inter"
-# font-mono: "JetBrains Mono"
+# Each accepts a single bare name or a list of names to try in order. A name
+# you don't have installed logs a harmless "unknown font family" warning and
+# falls through to the next one, then to the template's built-in default.
+# Whole document — body and headings alike — tries IBM Plex Sans, then
+# Roboto, then Segoe UI (installed on Windows by default), before falling
+# back to Libertinus Serif.
+font-body:
+  - "IBM Plex Sans"
+  - "Roboto"
+  - "Segoe UI"
+font-sans:
+  - "IBM Plex Sans"
+  - "Roboto"
+  - "Segoe UI"
+# font-mono:
+#   - "JetBrains Mono"
+#   - "Fira Code"
+#   - "SF Mono"
+#   - "Cascadia Code"
 
 line-numbers: true   # gutter line numbers in code blocks
 

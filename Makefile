@@ -41,9 +41,14 @@ FILTERS := \
 # NOTE: deliberately no --citeproc. Typst formats the bibliography itself
 # (see the #bibliography call at the bottom of templates/guide.typ). Adding
 # --citeproc here would produce two reference lists.
+# --wrap=none matters: Pandoc's default --wrap=auto hard-wraps generated
+# output at ~72 columns, and a wrap point can land inside a multi-word
+# metadata value interpolated into the template (e.g. font-sans: "Segoe UI"),
+# splitting the Typst string literal across two lines and breaking the build.
 PANDOC_FLAGS := \
 	--from=markdown+fenced_divs+bracketed_spans+implicit_figures+table_captions \
 	--to=typst \
+	--wrap=none \
 	--metadata-file=$(METADATA) \
 	--template=$(TEMPLATE) \
 	--resource-path=.:img \

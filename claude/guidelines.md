@@ -29,7 +29,8 @@ into `templates/` or `filters/`.
 | Clean | `.\build.ps1 -Clean` | `make clean` |
 | Check deps | `.\build.ps1 -Check` | `make check` |
 
-Requires Pandoc 3.0+ and Typst 0.13+. When debugging a rendering problem, build
+**Pinned toolchain: Pandoc 3.10.2 and Typst 0.15.1.** These are exact pins, not
+minimums — see gotcha 15 for why. When debugging a rendering problem, build
 the intermediate `.typ` first and read it — that isolates whether the fault is
 in Pandoc/filters or in the Typst template.
 
@@ -62,6 +63,13 @@ These each cost an hour to find. Do not rediscover them.
    producing invalid Typst. This is why `accent-color` takes `b7410e`, not
    `#b7410e`.
 
+   The same trap catches `_`, and it bites hardest in **paths**. Pandoc parses
+   metadata values as Markdown and escapes an underscore to `\_`; Typst then
+   refuses the path with `error: path must not contain a backslash` and a
+   misleading hint about Windows path separators. Keep every filename referenced
+   from `metadata.yaml` — `cover-image`, `brand-mark`, `brand-logo` — free of
+   underscores. Hyphens are safe.
+
 3. **Filter order matters and is not arbitrary.** `listings.lua`, `tables.lua`
    and `callouts.lua` each serialise their contents to Typst via
    `pandoc.write`, which removes those contents from Pandoc's AST. Any filter
@@ -72,10 +80,14 @@ These each cost an hour to find. Do not rediscover them.
    `#bibliography()` in the template. Enabling Pandoc's citation processor as
    well produces two reference lists.
 
-5. **Citations must be emitted as `#cite(<key>)`, not `#cite("key")`.** Older
-   Pandoc emits the string form and Typst 0.13+ rejects it with
-   `error: expected label, found string`. `crossrefs.lua` normalises this;
-   don't remove that behaviour.
+5. **Citation output is version-dependent; `crossrefs.lua` normalises it.**
+   Pandoc 3.1.x emitted `#cite("key")` — a string — which Typst 0.13+ rejects
+   with `error: expected label, found string`. Pandoc 3.10.2 emits native
+   `@key` / `@key[p.~4]` instead. `crossrefs.lua` overrides both and always
+   emits `#cite(<key>)`, which is valid on every Typst 0.13+. It also routes
+   `lst:` / `fig:` / `tbl:` / `sec:` / `eq:` prefixes to Typst cross-references
+   rather than citations. Don't remove that; without it the pinned pair happens
+   to work, but any Pandoc downgrade breaks the build.
 
 6. **Content inside `#figure(...)` is in code mode and inherits centre
    alignment.** Raw Typst emitted into a figure must be wrapped in `[ ]`, and
@@ -87,12 +99,16 @@ These each cost an hour to find. Do not rediscover them.
    does the same for image paths. Keep paths in `metadata.yaml` relative to the
    project root.
 
-8. **Pandoc does not parse `{#tbl:x}` as a table attribute** the way it does
-   for images and code blocks — the braces survive as literal caption text.
-   `tables.lua` extracts the identifier manually.
+8. **`{#tbl:x}` parsing is version-dependent.** Pandoc 3.1.x did NOT parse it
+   as a table attribute — the braces survived as literal caption text — so
+   `tables.lua` extracts the identifier by hand. Pandoc 3.10.2 parses it
+   correctly and attaches the label itself. Both paths are handled; see
+   gotcha 14 for why that matters.
 
-9. **`pandoc.Caption` does not exist before Pandoc 3.2.** Use the plain table
-   form `{ long = pandoc.Blocks({}) }` when clearing a caption.
+9. **`pandoc.Caption` does not exist before Pandoc 3.2.** It exists in 3.10.2,
+   but `tables.lua` still uses the plain-table form `{ long = pandoc.Blocks({}) }`
+   when clearing a caption, because that works on every version. Calling
+   `pandoc.Caption({})` on old Pandoc dies with "attempt to call a nil value".
 
 10. **"unknown font family" warnings are harmless.** Typst logs one per name it
     cannot find and falls through the stack. Defaults are the fonts Typst
@@ -126,9 +142,43 @@ These each cost an hour to find. Do not rediscover them.
     | 3.6+ | `#quote(block: true)[...]` | `#divider()` | `#footnote[...]` |
 
     All of them are defined, so the template is version-independent. Verified
-    building identical 11-page PDFs on Pandoc 3.1.3 and 3.10.2 with Typst
-    0.15.1. If you ever add a Pandoc partial call back in, you re-introduce a
+    building on the pinned Pandoc 3.10.2 with Typst 0.15.1, and on Pandoc
+    3.1.3 for the helper-name coverage specifically (3.1.3 is otherwise
+    unusable with Typst 0.15 - see gotcha 15). If you ever add a Pandoc partial call back in, you re-introduce a
     dependency on one specific Pandoc version.
+
+14. **`tables.lua` MUST stay conditional.** Pandoc 3.10.2 already wraps every
+    captioned table in `#figure(align(center)[#table(...)], caption: [...],
+    kind: table)` with the `<tbl:x>` label attached — exactly what this filter
+    was written to produce. Running the filter as well nests a figure inside a
+    figure, and Typst then advances the table counter TWICE per table: you get
+    Table 1, Table 3, Table 5, and every `[@tbl:x]` reference points at the
+    wrong number. The build stays green, so this is only visible by looking at
+    the PDF. The filter probes the writer at load time (renders a throwaway
+    table and checks for `#figure`) and disables itself when Pandoc already
+    does the work. Do not replace that probe with a hardcoded version check —
+    the changeover happened somewhere between 3.1 and 3.10 and the exact
+    boundary is not documented.
+
+15. **Do not downgrade Pandoc below the pinned version.** Pandoc 3.1.x emits
+    Typst symbol names that Typst 0.15 renamed: `\partial` becomes `diff`
+    (now `partial`) and `=` becomes `eq`. Display math then fails to compile
+    with `error: unknown variable: diff`. Pandoc 3.10.2 emits the current
+    names. This is the concrete reason the versions are pinned rather than
+    given as minimums.
+
+16. **All three build entry points pass `--wrap=none` to Pandoc — keep it.**
+    Without it, Pandoc's default `--wrap=auto` hard-wraps the generated
+    `.typ` at ~72 columns. A wrap point can land inside any multi-word value
+    interpolated from `metadata.yaml` (a font name like `"Segoe UI"`, a
+    `brand-name`, an author name), turning a single Typst string literal into
+    two lines and breaking the string. The build fails at the Typst stage
+    with a confusing error (or, worse, silently drops half the value if the
+    break lands somewhere else). This is why `font-body`/`font-sans`/
+    `font-mono` in `metadata.yaml` are YAML lists rather than one
+    comma-separated string, too: the template fills them with `$for(...)$`
+    (the same pattern used for `author`), so each font name is its own
+    interpolation and never depends on where a line-wrap would fall.
 
 ## Conventions
 

@@ -65,9 +65,14 @@ build() {
   done
 
   echo "Generating Typst source..."
+  # --wrap=none: Pandoc's default hard-wraps generated output at ~72 columns,
+  # and a wrap point can land inside a multi-word metadata value interpolated
+  # into the template (e.g. font-sans: "Segoe UI"), splitting the Typst
+  # string literal across two lines and breaking the build.
   pandoc "${CONTENTS[@]}" \
     --from=markdown+fenced_divs+bracketed_spans+implicit_figures+table_captions \
     --to=typst \
+    --wrap=none \
     --metadata-file="$ROOT/metadata.yaml" \
     --template="$ROOT/templates/guide.typ" \
     --resource-path=".:$ROOT/img" \

@@ -238,6 +238,11 @@ function Invoke-Build {
     $pandocArgs += $contents
     $pandocArgs += '--from=markdown+fenced_divs+bracketed_spans+implicit_figures+table_captions'
     $pandocArgs += '--to=typst'
+    # --wrap=none matters: Pandoc's default hard-wraps generated output at
+    # ~72 columns, and a wrap point can land inside a multi-word metadata
+    # value interpolated into the template (e.g. font-sans: "Segoe UI"),
+    # splitting the Typst string literal across two lines and breaking the build.
+    $pandocArgs += '--wrap=none'
     $pandocArgs += "--metadata-file=$(Join-Path $Root 'metadata.yaml')"
     $pandocArgs += "--template=$(Join-Path $Root 'templates/guide.typ')"
     $pandocArgs += '--resource-path=.;img'

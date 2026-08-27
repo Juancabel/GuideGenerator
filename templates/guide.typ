@@ -50,21 +50,51 @@
 // produces a harmless "unknown font family" warning and falls through to the
 // next entry — which is why any font you set in metadata.yaml is tried first
 // and these remain as the backstop.
-#let font-body = ($if(font-body)$"$font-body$", $endif$"Libertinus Serif")
-#let font-sans = ($if(font-sans)$"$font-sans$", $endif$"Libertinus Serif")
-#let font-mono = ($if(font-mono)$"$font-mono$", $endif$"DejaVu Sans Mono")
+// font-body/font-sans/font-mono in metadata.yaml accept either a single bare
+// name or a YAML list of names to try in order — $$for(...)$$ handles both
+// the same way it already does for `author`, and emits nothing when unset.
+#let font-body = ($for(font-body)$"$font-body$", $endfor$"Libertinus Serif")
+#let font-sans = ($for(font-sans)$"$font-sans$", $endfor$"Libertinus Serif")
+#let font-mono = ($for(font-mono)$"$font-mono$", $endfor$"DejaVu Sans Mono")
 
 #let size-body = $if(font-size)$$font-size$$else$10.5pt$endif$
 #let size-code = $if(code-size)$$code-size$$else$8.5pt$endif$
 
 // Page geometry. Set `two-sided: true` in metadata.yaml for mirrored margins
 // suitable for duplex printing and binding.
-#let page-margin = $if(two-sided)$(inside: 3cm, outside: 2.4cm, top: 2.6cm, bottom: 2.4cm)$else$(x: 2.6cm, top: 2.6cm, bottom: 2.4cm)$endif$
+// The top margin has to clear the running header, which carries a logo.
+#let page-margin = $if(two-sided)$(inside: 3cm, outside: 2.4cm, top: 3cm, bottom: 2.4cm)$else$(x: 2.6cm, top: 3cm, bottom: 2.4cm)$endif$
 
 // Derived tints. Adjust the percentages to make code blocks louder or quieter.
 #let code-bg     = luma(250)
 #let code-border = luma(225)
 #let muted       = luma(110)
+
+// Branding. All three are optional and come from metadata.yaml; leave them
+// unset and the cover and headers fall back to the plain typographic layout.
+//
+//   brand-name       short organisation or programme name, shown top-right of
+//                    every body page header and on the title page
+//   brand-mark       compact logo for the page header (a crest or symbol —
+//                    something that still reads at 8mm tall)
+//   brand-logo       full logo with wordmark, shown on the title page
+//
+// Paths are relative to the PROJECT ROOT, like every other path in
+// metadata.yaml; the leading '/' added below makes Typst resolve them against
+// --root rather than against the generated .typ in output/.
+#let brand-mark-height = 8.5mm
+#let brand-logo-width  = 5.2cm
+#let brand-grey        = luma(90)
+
+// Brand name, one word per line, right-aligned — used on the title page.
+// A single-word brand name just renders as one line.
+#let brand-name-str = "$if(brand-name)$$brand-name$$endif$"
+#let brand-name-title(size: 13pt) = align(right, stack(
+  dir: ttb, spacing: 0.15em,
+  ..brand-name-str.split(" ").map(w => align(right,
+    text(font: font-sans, size: size, weight: "bold", fill: brand-grey, w)
+  ))
+))
 
 
 // -----------------------------------------------------------------------------
@@ -258,10 +288,6 @@
   ]
 }
 
-// Listings put their caption above the code, like a title bar.
-#show figure.where(kind: "listing"): set figure.caption(position: top)
-#show figure.where(kind: table): set figure.caption(position: top)
-
 #set table(stroke: (x, y) => if y == 0 { (bottom: 0.8pt + luma(40)) } else { (bottom: 0.4pt + luma(200)) }, inset: 7pt)
 #show table.cell.where(y: 0): set text(font: font-sans, weight: "bold", size: size-body * 0.92)
 
@@ -278,8 +304,28 @@
 
 #set page(paper: "$if(papersize)$$papersize$$else$a4$endif$", margin: page-margin, numbering: none)
 
-#page(margin: (x: 2.6cm, top: 4.5cm, bottom: 2.6cm))[
+#page(margin: (x: 2.6cm, top: 3cm, bottom: 2.6cm))[
   #set text(font: font-sans)
+
+  // Institutional lockup: full logo on the left, programme name on the right.
+  $if(brand-logo)$
+  #grid(
+    columns: (auto, 1fr),
+    align: (left + horizon, right + horizon),
+    image("/$brand-logo$", width: brand-logo-width),
+    $if(brand-name)$
+    brand-name-title(),
+    $else$
+    [],
+    $endif$
+  )
+  #v(0.8em)
+  $else$
+  $if(brand-name)$
+  #brand-name-title()
+  #v(1.2em)
+  $endif$
+  $endif$
 
   #block(width: 100%, height: 4pt, fill: accent)
   #v(1.6em)
@@ -384,29 +430,46 @@ $endif$
   numbering: "1",
   number-align: center,
   header: context {
-    // No header on a page that opens a chapter.
+    // The branding runs on every body page. The chapter reference in the
+    // middle is dropped on a page that opens a chapter, where the chapter
+    // title is already set in 22pt directly below.
     let here-page = here().page()
     let chapter-starts = query(heading.where(level: 1))
       .map(h => h.location().page())
-    if chapter-starts.contains(here-page) { return }
+    let opens-chapter = chapter-starts.contains(here-page)
 
-    // Nearest level-1 heading at or before this point.
-    let before = query(heading.where(level: 1).before(here()))
-    if before.len() == 0 { return }
-    let ch = before.last()
+    let running = {
+      if opens-chapter { [] } else {
+        let before = query(heading.where(level: 1).before(here()))
+        if before.len() == 0 { [] } else {
+          let ch = before.last()
+          if ch.numbering != none {
+            [#counter(heading).at(ch.location()).first(). #ch.body]
+          } else {
+            ch.body
+          }
+        }
+      }
+    }
 
     set text(font: font-sans, size: 8.5pt, fill: muted)
     grid(
-      columns: (1fr, auto),
-      align(left)[$title$],
-      align(right)[
-        #if ch.numbering != none {
-          [#counter(heading).at(ch.location()).first(). ]
-        }
-        #ch.body
-      ],
+      columns: (auto, 1fr, auto),
+      align: (left + horizon, center + horizon, right + horizon),
+      column-gutter: 0.8em,
+      $if(brand-mark)$
+      image("/$brand-mark$", height: brand-mark-height),
+      $else$
+      [],
+      $endif$
+      running,
+      $if(brand-name)$
+      text(font: font-sans, weight: "bold", fill: brand-grey)[$brand-name$],
+      $else$
+      [],
+      $endif$
     )
-    v(-0.5em)
+    v(-0.4em)
     line(length: 100%, stroke: 0.4pt + luma(210))
   },
 )
