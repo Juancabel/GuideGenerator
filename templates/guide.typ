@@ -304,7 +304,7 @@
 
 #set page(paper: "$if(papersize)$$papersize$$else$a4$endif$", margin: page-margin, numbering: none)
 
-#page(margin: (x: 2.6cm, top: 3cm, bottom: 2.6cm))[
+#page(margin: (x: 2.6cm, top: 3cm, bottom: $if(cover-image)$0cm$else$2.6cm$endif$))[
   #set text(font: font-sans)
 
   // Institutional lockup: full logo on the left, programme name on the right.
@@ -339,6 +339,50 @@
 
   #v(2.2em)
   #line(length: 38%, stroke: 1pt + luma(190))
+
+  $if(cover-image)$
+  // The photo is a full-bleed backdrop for the rest of the cover; the
+  // negative pad cancels the page's x-margin so the image reaches both
+  // edges, and the 0cm bottom margin set above lets it run to the foot of
+  // the page. Author, version and date sit near the top of the photo (same
+  // left column, spacing and sizing as the no-image layout below), and
+  // publisher sits at its foot — both overlaid in white over a scrim so
+  // they stay legible regardless of the photo's own colours.
+  #v(1.4em)
+  #pad(x: -2.6cm)[
+    #block(width: 100%, height: 1fr, clip: true)[
+        #place(top + left, image("/$cover-image$", width: 100%, height: 100%, fit: "cover"))
+        #place(top + left, rect(
+          width: 100%, height: 35%, stroke: none,
+          fill: gradient.linear(rgb(0, 0, 0, 75%), rgb(0, 0, 0, 0%), dir: ttb),
+        ))
+        #place(bottom + left, rect(
+          width: 100%, height: 25%, stroke: none,
+          fill: gradient.linear(rgb(0, 0, 0, 0%), rgb(0, 0, 0, 70%), dir: ttb),
+        ))
+        #place(top + left, dx: 2.6cm, dy: 1.2cm)[
+          $if(author)$
+          #text(size: 12pt, weight: "medium", fill: white)[
+            $for(author)$$author$$sep$ #linebreak() $endfor$
+          ]
+          $endif$
+          $if(version)$
+          #v(0.8em)
+          #text(size: 10pt, fill: luma(220))[Version $version$]
+          $endif$
+          $if(date)$
+          #v(0.3em)
+          #text(size: 10pt, fill: luma(220))[$date$]
+          $endif$
+        ]
+        $if(publisher)$
+        #place(bottom + right, dx: -2.6cm, dy: -1.2cm)[
+          #text(size: 10pt, fill: luma(220), weight: "medium")[$publisher$]
+        ]
+        $endif$
+    ]
+  ]
+  $else$
   #v(1.4em)
 
   $if(author)$
@@ -360,13 +404,9 @@
   // Everything after this pushes to the bottom of the cover.
   #v(1fr)
 
-  $if(cover-image)$
-  #align(center, image("/$cover-image$", width: 62%))
-  #v(1fr)
-  $endif$
-
   $if(publisher)$
   #text(size: 10pt, fill: muted, weight: "medium")[$publisher$]
+  $endif$
   $endif$
 ]
 
