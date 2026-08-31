@@ -173,7 +173,7 @@
     inset: (x: 11pt, y: 9pt),
     above: 1.2em,
     below: 1.2em,
-    breakable: true,
+    breakable: false,
   )[
     #text(
       font: font-sans,
