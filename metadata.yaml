@@ -40,10 +40,15 @@ lang: "en"
 # Pandoc parses metadata values as Markdown and escapes '_' to '\_', and Typst
 # then rejects the backslash in the path. Use hyphens.
 
-# Shown top-right of every body page header and on the title page. On the
+# Shown top-right of every body page header and on the title page, UNLESS
+# brand-name-logo is set below, which takes over both spots instead. On the
 # title page it is broken one word per line and right-aligned; a single-word
 # name just renders on one line.
 brand-name: "DualTech Environment"
+
+# Logo shown top-right of the header and title page INSTEAD of brand-name,
+# when set. Drawn 8.5mm tall in the header and 12mm tall on the title page.
+brand-name-logo: "img/Logo-3-Color.png"
 
 # Compact logo for the running header. It is drawn 8.5mm tall, so use a mark
 # that still reads at that size — a crest or symbol, not a full wordmark.

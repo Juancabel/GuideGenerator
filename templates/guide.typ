@@ -70,11 +70,15 @@
 #let code-border = luma(225)
 #let muted       = luma(110)
 
-// Branding. All three are optional and come from metadata.yaml; leave them
-// unset and the cover and headers fall back to the plain typographic layout.
+// Branding. All are optional and come from metadata.yaml; leave them unset
+// and the cover and headers fall back to the plain typographic layout.
 //
-//   brand-name       short organisation or programme name, shown top-right of
-//                    every body page header and on the title page
+//   brand-name       unused while brand-name-logo is set (see below); would
+//                    otherwise show top-right of the title page as plain text
+//   brand-name-logo  logo shown top-right of the title page INSTEAD of
+//                    brand-name, when set. The body page header instead
+//                    always shows the hardcoded header-brand-text() wordmark
+//                    defined below, regardless of these two fields.
 //   brand-mark       compact logo for the page header (a crest or symbol —
 //                    something that still reads at 8mm tall)
 //   brand-logo       full logo with wordmark, shown on the title page
@@ -82,9 +86,10 @@
 // Paths are relative to the PROJECT ROOT, like every other path in
 // metadata.yaml; the leading '/' added below makes Typst resolve them against
 // --root rather than against the generated .typ in output/.
-#let brand-mark-height = 8.5mm
-#let brand-logo-width  = 5.2cm
-#let brand-grey        = luma(90)
+#let brand-mark-height      = 8.5mm
+#let brand-logo-width       = 5.2cm
+#let brand-name-logo-height = 24mm
+#let brand-grey             = luma(90)
 
 // Brand name, one word per line, right-aligned — used on the title page.
 // A single-word brand name just renders as one line.
@@ -94,6 +99,20 @@
   ..brand-name-str.split(" ").map(w => align(right,
     text(font: font-sans, size: size, weight: "bold", fill: brand-grey, w)
   ))
+))
+
+// Header wordmark: "DualTech" (two-tone) over "Environment", right-aligned,
+// in Furuta 100. Hardcoded rather than metadata-driven — the per-word
+// colouring is specific to this brand, unlike the plain brand-name text
+// above.
+#let header-brand-font = "Futura 100"
+#let header-brand-text() = align(right, stack(
+  dir: ttb, spacing: 0.05em,
+  align(right, {
+    text(font: header-brand-font, weight: "bold", fill: rgb("#ce9e4f"))[Dual]
+    text(font: header-brand-font, weight: "bold", fill: rgb("#0087b4"))[Tech]
+  }),
+  align(right, text(font: header-brand-font, weight: "bold", fill: rgb("#53613a"))[Environment]),
 ))
 
 
@@ -307,23 +326,33 @@
 #page(margin: (x: 2.6cm, top: 3cm, bottom: $if(cover-image)$0cm$else$2.6cm$endif$))[
   #set text(font: font-sans)
 
-  // Institutional lockup: full logo on the left, programme name on the right.
+  // Institutional lockup: full logo on the left, programme name (as a logo,
+  // if brand-name-logo is set, else as text) on the right.
   $if(brand-logo)$
   #grid(
     columns: (auto, 1fr),
     align: (left + horizon, right + horizon),
     image("/$brand-logo$", width: brand-logo-width),
+    $if(brand-name-logo)$
+    image("/$brand-name-logo$", height: brand-name-logo-height),
+    $else$
     $if(brand-name)$
     brand-name-title(),
     $else$
     [],
     $endif$
+    $endif$
   )
   #v(0.8em)
+  $else$
+  $if(brand-name-logo)$
+  #align(right, image("/$brand-name-logo$", height: brand-name-logo-height))
+  #v(1.2em)
   $else$
   $if(brand-name)$
   #brand-name-title()
   #v(1.2em)
+  $endif$
   $endif$
   $endif$
 
@@ -345,17 +374,13 @@
   // negative pad cancels the page's x-margin so the image reaches both
   // edges, and the 0cm bottom margin set above lets it run to the foot of
   // the page. Author, version and date sit near the top of the photo (same
-  // left column, spacing and sizing as the no-image layout below), and
-  // publisher sits at its foot — both overlaid in white over a scrim so
-  // they stay legible regardless of the photo's own colours.
+  // left column, spacing and sizing as the no-image layout below), in white
+  // directly over the image; publisher sits at its foot, in white over a
+  // dark scrim.
   #v(1.4em)
   #pad(x: -2.6cm)[
     #block(width: 100%, height: 1fr, clip: true)[
         #place(top + left, image("/$cover-image$", width: 100%, height: 100%, fit: "cover"))
-        #place(top + left, rect(
-          width: 100%, height: 35%, stroke: none,
-          fill: gradient.linear(rgb(0, 0, 0, 75%), rgb(0, 0, 0, 0%), dir: ttb),
-        ))
         #place(bottom + left, rect(
           width: 100%, height: 25%, stroke: none,
           fill: gradient.linear(rgb(0, 0, 0, 0%), rgb(0, 0, 0, 70%), dir: ttb),
@@ -368,11 +393,11 @@
           $endif$
           $if(version)$
           #v(0.8em)
-          #text(size: 10pt, fill: luma(220))[Version $version$]
+          #text(size: 10pt, fill: luma(230))[Version $version$]
           $endif$
           $if(date)$
           #v(0.3em)
-          #text(size: 10pt, fill: luma(220))[$date$]
+          #text(size: 10pt, fill: luma(230))[$date$]
           $endif$
         ]
         $if(publisher)$
@@ -503,11 +528,7 @@ $endif$
       [],
       $endif$
       running,
-      $if(brand-name)$
-      text(font: font-sans, weight: "bold", fill: brand-grey)[$brand-name$],
-      $else$
-      [],
-      $endif$
+      header-brand-text(),
     )
     v(-0.4em)
     line(length: 100%, stroke: 0.4pt + luma(210))
